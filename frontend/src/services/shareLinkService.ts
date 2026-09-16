@@ -46,5 +46,7 @@ export function maskToken(token: string): string {
 }
 
 export function buildPublicUrl(token: string): string {
-  return `${window.location.origin}/public/t/${token}`;
+  // import.meta.env.BASE_URL já vem com "/" no início e no fim (inclui o
+  // subcaminho do GitHub Pages em produção, ex.: "/PipelineMovieDeskJIRA/").
+  return `${window.location.origin}${import.meta.env.BASE_URL}public/t/${token}`;
 }
