@@ -1,5 +1,5 @@
 import type { Development } from "../types/ticket";
-import { PipelineStepper } from "./PipelineStepper";
+import { PipelineStepper, type PipelineStepperProps } from "./PipelineStepper";
 
 export function JiraPipeline({
   development,
@@ -8,7 +8,7 @@ export function JiraPipeline({
   orientation = "horizontal",
 }: {
   development: Development;
-  size?: "sm" | "md";
+  size?: PipelineStepperProps["size"];
   showLabels?: boolean;
   orientation?: "horizontal" | "vertical";
 }) {

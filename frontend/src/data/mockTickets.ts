@@ -276,14 +276,9 @@ function buildTicket(index: number): Ticket {
   const createdAt = daysAgo(createdDaysAgo, randomInt(0, 23));
   const jiraIssues = buildJiraIssues(mod);
 
-  const latestJiraUpdate = jiraIssues.reduce<string | null>((latest, issue) => {
-    if (!latest || issue.updatedAt > latest) return issue.updatedAt;
-    return latest;
-  }, null);
-
-  const ownUpdatedAt = daysAgo(randomInt(0, Math.min(createdDaysAgo, 20)), randomInt(0, 23));
-  const updatedAt =
-    latestJiraUpdate && latestJiraUpdate > ownUpdatedAt ? latestJiraUpdate : ownUpdatedAt;
+  // O ticket Movidesk é atualizado de forma independente dos tickets Jira
+  // associados a ele (cada JiraIssue já carrega o próprio `updatedAt`).
+  const updatedAt = daysAgo(randomInt(0, Math.min(createdDaysAgo, 20)), randomInt(0, 23));
 
   return {
     id: 100000 + index,

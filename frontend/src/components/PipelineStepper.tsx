@@ -19,9 +19,29 @@ function computeStepStates(stage: PipelineStage): StepState[] {
 const CIRCLE_BASE =
   "flex items-center justify-center rounded-full border-2 shrink-0 transition-colors";
 
-function StepCircle({ state, size }: { state: StepState; size: "sm" | "md" }) {
-  const dims = size === "sm" ? "h-5 w-5" : "h-7 w-7";
-  const iconSize = size === "sm" ? 11 : 14;
+type StepSize = "sm" | "md" | "lg";
+
+const DIMS: Record<StepSize, string> = {
+  sm: "h-5 w-5",
+  md: "h-7 w-7",
+  lg: "h-10 w-10",
+};
+
+const ICON_SIZE: Record<StepSize, number> = {
+  sm: 11,
+  md: 14,
+  lg: 20,
+};
+
+const RING_CLASS: Record<StepSize, string> = {
+  sm: "ring-4",
+  md: "ring-4",
+  lg: "ring-[6px]",
+};
+
+function StepCircle({ state, size }: { state: StepState; size: StepSize }) {
+  const dims = DIMS[size];
+  const iconSize = ICON_SIZE[size];
 
   if (state === "done") {
     return (
@@ -36,7 +56,8 @@ function StepCircle({ state, size }: { state: StepState; size: "sm" | "md" }) {
         className={clsx(
           CIRCLE_BASE,
           dims,
-          "border-indigo-600 bg-indigo-600 ring-4 ring-indigo-100"
+          RING_CLASS[size],
+          "border-indigo-600 bg-indigo-600 ring-indigo-100"
         )}
       />
     );
@@ -62,7 +83,7 @@ export interface PipelineStepperProps {
   stage: PipelineStage;
   jiraKey?: string | null;
   jiraStatus?: string | null;
-  size?: "sm" | "md";
+  size?: StepSize;
   showLabels?: boolean;
   orientation?: "horizontal" | "vertical";
   className?: string;
@@ -159,7 +180,8 @@ export function PipelineStepper({
               {idx < PIPELINE_STAGE_ORDER.length - 1 && (
                 <span
                   className={clsx(
-                    "mx-1 h-0.5 flex-1 rounded-full",
+                    "mx-1.5 flex-1 rounded-full",
+                    size === "lg" ? "h-1" : "h-0.5",
                     state === "done" ? CONNECTOR_STATE_CLASS.done : CONNECTOR_STATE_CLASS.future
                   )}
                 />
@@ -170,16 +192,15 @@ export function PipelineStepper({
       </div>
 
       {showLabels && (
-        <div className="flex text-[11px] text-slate-500">
+        <div className={clsx("flex", size === "lg" ? "text-xs" : "text-[11px]", "text-slate-500")}>
           {PIPELINE_STAGE_ORDER.map((stepStage, idx) => (
             <div
               key={stepStage}
               className={clsx(
-                "flex-1 text-center first:text-left last:flex-none last:text-right",
+                "flex-1 text-center leading-tight first:text-left last:flex-none last:text-right",
                 states[idx] === "current" && "font-semibold text-indigo-700",
                 states[idx] === "unmapped" && "font-semibold text-amber-700"
               )}
-              style={{ maxWidth: `${100 / PIPELINE_STAGE_ORDER.length}%` }}
             >
               {PIPELINE_STAGE_LABEL[stepStage]}
             </div>

@@ -2,16 +2,6 @@ import type { Ticket } from "../types/ticket";
 import { TicketRow } from "./TicketRow";
 import { Inbox } from "lucide-react";
 
-const HEADERS = [
-  "Ticket",
-  "Título",
-  "Status do Atendimento",
-  "Resumo da Primeira Interação",
-  "Pipeline",
-  "Atualização",
-  "Ações",
-];
-
 export function TicketTable({
   tickets,
   onOpenShare,
@@ -30,30 +20,10 @@ export function TicketTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
-              {HEADERS.map((header, i) => (
-                <th
-                  key={header}
-                  className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500 ${
-                    i === HEADERS.length - 1 ? "text-right" : ""
-                  }`}
-                >
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {tickets.map((ticket) => (
-              <TicketRow key={ticket.id} ticket={ticket} onOpenShare={onOpenShare} />
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="flex flex-col gap-3">
+      {tickets.map((ticket) => (
+        <TicketRow key={ticket.id} ticket={ticket} onOpenShare={onOpenShare} />
+      ))}
     </div>
   );
 }

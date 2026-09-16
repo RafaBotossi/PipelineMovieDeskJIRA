@@ -114,7 +114,7 @@ export default function TicketDetailPage() {
             <p className="mb-3 text-xs text-slate-400">
               Este ticket ainda não possui um ticket Jira associado.
             </p>
-            <JiraPipeline development={pipeline.developments[0]} />
+            <JiraPipeline development={pipeline.developments[0]} size="lg" />
           </div>
         ) : (
           <div className="flex flex-col gap-6">
@@ -135,7 +135,7 @@ export default function TicketDetailPage() {
                     />
                   </div>
                 </div>
-                <JiraPipeline development={dev} />
+                <JiraPipeline development={dev} size="lg" />
                 <p className="mt-3 text-[11px] text-slate-400">
                   Status Jira: {dev.jiraStatus} · Última atualização{" "}
                   {formatDateTime(dev.updatedAt)}
