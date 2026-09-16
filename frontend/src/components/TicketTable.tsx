@@ -2,13 +2,7 @@ import type { Ticket } from "../types/ticket";
 import { TicketRow } from "./TicketRow";
 import { Inbox } from "lucide-react";
 
-export function TicketTable({
-  tickets,
-  onOpenShare,
-}: {
-  tickets: Ticket[];
-  onOpenShare: (ticket: Ticket) => void;
-}) {
+export function TicketTable({ tickets }: { tickets: Ticket[] }) {
   if (tickets.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 bg-white py-16 text-center">
@@ -22,7 +16,7 @@ export function TicketTable({
   return (
     <div className="flex flex-col gap-3">
       {tickets.map((ticket) => (
-        <TicketRow key={ticket.id} ticket={ticket} onOpenShare={onOpenShare} />
+        <TicketRow key={ticket.id} ticket={ticket} />
       ))}
     </div>
   );

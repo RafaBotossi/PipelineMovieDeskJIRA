@@ -131,11 +131,7 @@ const JIRA_STATUSES_KNOWN = [
 
 // Propositalmente fora do mapeamento (config/pipelineConfig.ts) para exercitar
 // o estado "Status Jira não mapeado" na interface.
-const JIRA_STATUSES_UNMAPPED = [
-  "Bloqueado",
-  "Aguardando Aprovação do PO",
-  "Em Homologação Externa",
-] as const;
+const JIRA_STATUSES_UNMAPPED = ["Bloqueado", "Aguardando Aprovação do PO"] as const;
 
 const JIRA_PREFIXES = ["DEV", "SUP", "INFRA", "APP"] as const;
 

@@ -3,9 +3,8 @@ import { MOCK_TICKETS } from "../data/mockTickets";
 import { TicketFilters } from "../components/TicketFilters";
 import { TicketTable } from "../components/TicketTable";
 import { Pagination } from "../components/Pagination";
-import { ShareTicketModal } from "../components/ShareTicketModal";
 import { filterTickets } from "../services/ticketService";
-import type { Ticket, TicketFiltersState } from "../types/ticket";
+import type { TicketFiltersState } from "../types/ticket";
 
 const PAGE_SIZE = 12;
 
@@ -19,7 +18,6 @@ const INITIAL_FILTERS: TicketFiltersState = {
 export default function PipelinePage() {
   const [filters, setFilters] = useState<TicketFiltersState>(INITIAL_FILTERS);
   const [page, setPage] = useState(1);
-  const [shareTicket, setShareTicket] = useState<Ticket | null>(null);
 
   const filtered = useMemo(() => filterTickets(MOCK_TICKETS, filters), [filters]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -42,13 +40,9 @@ export default function PipelinePage() {
 
       <TicketFilters value={filters} onChange={handleFiltersChange} resultCount={filtered.length} />
 
-      <TicketTable tickets={pageItems} onOpenShare={setShareTicket} />
+      <TicketTable tickets={pageItems} />
 
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-
-      {shareTicket && (
-        <ShareTicketModal ticket={shareTicket} onClose={() => setShareTicket(null)} />
-      )}
     </div>
   );
 }
