@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { Bug, Sparkles } from "lucide-react";
+import { Bug, HelpCircle, Sparkles } from "lucide-react";
 import type { TicketType } from "../types/ticket";
 
 export type BadgeTone = "neutral" | "info" | "success" | "warning" | "danger" | "progress";
@@ -50,19 +50,45 @@ export function MovideskStatusBadge({ status }: { status: string }) {
   return <StatusBadge label={status} tone={MOVIDESK_STATUS_TONE[status] ?? "neutral"} />;
 }
 
+const TICKET_TYPE_META: Record<
+  TicketType,
+  { label: string; icon: typeof Bug; className: string }
+> = {
+  bug: {
+    label: "Bug",
+    icon: Bug,
+    className: "bg-rose-50 text-rose-600 ring-1 ring-inset ring-rose-200",
+  },
+  melhoria: {
+    label: "Melhoria",
+    icon: Sparkles,
+    className: "bg-violet-50 text-violet-600 ring-1 ring-inset ring-violet-200",
+  },
+  duvida: {
+    label: "Dúvida",
+    icon: HelpCircle,
+    className: "bg-sky-50 text-sky-600 ring-1 ring-inset ring-sky-200",
+  },
+};
+
+export const TICKET_TYPE_LABEL: Record<TicketType, string> = {
+  bug: TICKET_TYPE_META.bug.label,
+  melhoria: TICKET_TYPE_META.melhoria.label,
+  duvida: TICKET_TYPE_META.duvida.label,
+};
+
 export function TicketTypeBadge({ type }: { type: TicketType }) {
-  const isBug = type === "bug";
+  const meta = TICKET_TYPE_META[type];
+  const Icon = meta.icon;
   return (
     <span
       className={clsx(
         "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium",
-        isBug
-          ? "bg-rose-50 text-rose-600 ring-1 ring-inset ring-rose-200"
-          : "bg-violet-50 text-violet-600 ring-1 ring-inset ring-violet-200"
+        meta.className
       )}
     >
-      {isBug ? <Bug size={11} /> : <Sparkles size={11} />}
-      {isBug ? "Bug" : "Melhoria"}
+      <Icon size={11} />
+      {meta.label}
     </span>
   );
 }

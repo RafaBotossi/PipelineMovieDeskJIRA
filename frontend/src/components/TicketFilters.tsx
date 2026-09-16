@@ -1,8 +1,11 @@
 import { Search, X } from "lucide-react";
 import clsx from "clsx";
-import type { PipelineStage, TicketFiltersState } from "../types/ticket";
+import type { PipelineStage, TicketFiltersState, TicketType } from "../types/ticket";
 import { PIPELINE_STAGE_LABEL, PIPELINE_STAGE_ORDER } from "../config/pipelineConfig";
 import { ALL_MOVIDESK_STATUSES } from "../data/mockTickets";
+import { TICKET_TYPE_LABEL } from "./StatusBadge";
+
+const TICKET_TYPE_OPTIONS: TicketType[] = ["bug", "melhoria", "duvida"];
 
 const JIRA_PRESENCE_OPTIONS: { value: TicketFiltersState["jiraPresence"]; label: string }[] = [
   { value: "all", label: "Todos" },
@@ -21,12 +24,19 @@ export function TicketFilters({
 }) {
   const hasActiveFilters =
     value.search !== "" ||
+    value.ticketType !== null ||
     value.movideskStatus !== null ||
     value.pipelineStage !== null ||
     value.jiraPresence !== "all";
 
   function clearAll() {
-    onChange({ search: "", movideskStatus: null, pipelineStage: null, jiraPresence: "all" });
+    onChange({
+      search: "",
+      ticketType: null,
+      movideskStatus: null,
+      pipelineStage: null,
+      jiraPresence: "all",
+    });
   }
 
   return (
@@ -45,6 +55,21 @@ export function TicketFilters({
             className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-100"
           />
         </div>
+
+        <select
+          value={value.ticketType ?? ""}
+          onChange={(e) =>
+            onChange({ ...value, ticketType: (e.target.value || null) as TicketType | null })
+          }
+          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+        >
+          <option value="">Tipo do Ticket (todos)</option>
+          {TICKET_TYPE_OPTIONS.map((type) => (
+            <option key={type} value={type}>
+              {TICKET_TYPE_LABEL[type]}
+            </option>
+          ))}
+        </select>
 
         <select
           value={value.movideskStatus ?? ""}

@@ -93,6 +93,17 @@ const MELHORIA_TEMPLATES = [
   (m: string) => `Incluir novo filtro avançado em ${m}`,
 ] as const;
 
+const DUVIDA_TEMPLATES = [
+  (m: string) => `Dúvida sobre ${m}`,
+  (m: string, a: string) => `Como ${a} em ${m}?`,
+  (m: string) => `Orientação sobre o funcionamento de ${m}`,
+  (m: string, a: string) => `Dúvida ao ${a}`,
+  (m: string) => `Solicitação de esclarecimento sobre ${m}`,
+  (m: string) => `Onde encontrar as opções de ${m}`,
+  (m: string, a: string) => `Qual a forma correta de ${a}?`,
+  (m: string) => `Dúvida sobre prazo de entrega de ${m}`,
+] as const;
+
 const MOVIDESK_STATUSES = [
   "Novo",
   "Em Atendimento",
@@ -234,7 +245,8 @@ const LAST_NAMES = [
 ] as const;
 
 function buildTitle(type: TicketType, mod: string, acao: string): string {
-  const templates = type === "bug" ? BUG_TEMPLATES : MELHORIA_TEMPLATES;
+  const templates =
+    type === "bug" ? BUG_TEMPLATES : type === "melhoria" ? MELHORIA_TEMPLATES : DUVIDA_TEMPLATES;
   const template = pick(templates);
   return template(mod, acao);
 }
@@ -261,10 +273,15 @@ function daysAgo(days: number, hours = 0): string {
   return d.toISOString();
 }
 
-function buildJiraIssues(mod: string): JiraIssue[] {
+function buildJiraIssues(mod: string, type: TicketType): JiraIssue[] {
   const roll = rng();
   let count: number;
-  if (roll < 0.35) count = 0;
+  if (type === "duvida") {
+    // Uma dúvida raramente exige abertura de desenvolvimento no Jira.
+    if (roll < 0.85) count = 0;
+    else if (roll < 0.97) count = 1;
+    else count = 2;
+  } else if (roll < 0.35) count = 0;
   else if (roll < 0.7) count = 1;
   else if (roll < 0.9) count = 2;
   else count = 3;
@@ -294,13 +311,20 @@ function pickMovideskStatus(jiraIssues: JiraIssue[]): string {
   return allConcluded ? pick(CLOSED_MOVIDESK_STATUSES) : pick(OPEN_MOVIDESK_STATUSES);
 }
 
+function pickTicketType(): TicketType {
+  const roll = rng();
+  if (roll < 0.4) return "bug";
+  if (roll < 0.7) return "melhoria";
+  return "duvida";
+}
+
 function buildTicket(index: number): Ticket {
-  const type: TicketType = rng() > 0.55 ? "bug" : "melhoria";
+  const type: TicketType = pickTicketType();
   const mod = pick(MODULES);
   const acao = pick(ACOES);
   const createdDaysAgo = randomInt(1, 90);
   const createdAt = daysAgo(createdDaysAgo, randomInt(0, 23));
-  const jiraIssues = buildJiraIssues(mod);
+  const jiraIssues = buildJiraIssues(mod, type);
 
   // O ticket Movidesk é atualizado de forma independente dos tickets Jira
   // associados a ele (cada JiraIssue já carrega o próprio `updatedAt`).

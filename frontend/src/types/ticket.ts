@@ -1,4 +1,4 @@
-export type TicketType = "bug" | "melhoria";
+export type TicketType = "bug" | "melhoria" | "duvida";
 
 /**
  * Etapas do pipeline. "unmapped" representa um status Jira que não possui
@@ -77,6 +77,7 @@ export interface ShareLink {
 
 export interface TicketFiltersState {
   search: string;
+  ticketType: TicketType | null;
   movideskStatus: string | null;
   pipelineStage: PipelineStage | null;
   jiraPresence: "all" | "with" | "without";

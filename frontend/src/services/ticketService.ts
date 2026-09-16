@@ -14,6 +14,10 @@ export function filterTickets(tickets: Ticket[], filters: TicketFiltersState): T
       if (!matchesId && !matchesTitle && !matchesJira) return false;
     }
 
+    if (filters.ticketType && ticket.type !== filters.ticketType) {
+      return false;
+    }
+
     if (filters.movideskStatus && ticket.movideskStatus !== filters.movideskStatus) {
       return false;
     }

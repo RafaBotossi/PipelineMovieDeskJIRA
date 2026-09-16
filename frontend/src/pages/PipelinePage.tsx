@@ -10,6 +10,7 @@ const PAGE_SIZE = 12;
 
 const INITIAL_FILTERS: TicketFiltersState = {
   search: "",
+  ticketType: null,
   movideskStatus: null,
   pipelineStage: null,
   jiraPresence: "all",
