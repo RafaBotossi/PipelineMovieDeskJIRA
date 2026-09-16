@@ -30,11 +30,20 @@ export const PIPELINE_STAGE_ORDER: PipelineStage[] = [
   "delivery",
 ];
 
+/**
+ * Etapas opcionais do pipeline: nem todo desenvolvimento passa visivelmente
+ * por elas (ex.: um ticket sem Jira que é resolvido diretamente pelo
+ * atendente pula direto de "Em Atendimento" para "Concluído"). Usado pelo
+ * PipelineStepper para desenhar essas etapas com traço tracejado enquanto
+ * não forem alcançadas.
+ */
+export const OPTIONAL_PIPELINE_STAGES: PipelineStage[] = ["development", "testing"];
+
 export const PIPELINE_STAGE_LABEL: Record<PipelineStage, string> = {
   attendance: "Em Atendimento",
   development: "Em Desenvolvimento",
   testing: "Em Testes",
-  delivery: "Em Entrega",
+  delivery: "Concluído",
   unmapped: "Status Jira não mapeado",
 };
 

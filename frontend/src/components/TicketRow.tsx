@@ -6,6 +6,7 @@ import type { Ticket } from "../types/ticket";
 import { getTicketPipeline } from "../services/pipelineService";
 import { PipelineStepper } from "./PipelineStepper";
 import { MovideskStatusBadge, TicketTypeBadge } from "./StatusBadge";
+import { InternalAlertBanner } from "./InternalAlertBanner";
 import { formatDateTime, formatRelative } from "../utils/format";
 import { useShareLinks } from "../context/ShareLinksContext";
 import { useToast } from "../context/ToastContext";
@@ -43,7 +44,14 @@ export function TicketRow({ ticket }: { ticket: Ticket }) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5">
+    <div
+      className={clsx(
+        "rounded-xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5",
+        ticket.internalAlert ? "border-red-300" : "border-slate-200"
+      )}
+    >
+      {ticket.internalAlert && <InternalAlertBanner message={ticket.internalAlert} />}
+
       {/* Linha 1: ticket, título, tipo e atualização */}
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -110,6 +118,7 @@ export function TicketRow({ ticket }: { ticket: Ticket }) {
               stage={dev.pipelineStage}
               jiraKey={dev.jiraKey}
               jiraStatus={dev.jiraStatus}
+              skipsOptionalStages={dev.skipsOptionalStages}
               size="lg"
               showLabels
               className="max-w-xl flex-1"

@@ -28,6 +28,7 @@ export function JiraPipeline({
         stage={development.pipelineStage}
         jiraKey={development.jiraKey}
         jiraStatus={development.jiraStatus}
+        skipsOptionalStages={development.skipsOptionalStages}
         size={size}
         showLabels={showLabels}
         orientation={orientation}

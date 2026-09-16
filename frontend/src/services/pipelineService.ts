@@ -1,6 +1,11 @@
 import type { Development, Ticket, TicketPipeline } from "../types/ticket";
 import { resolveStageForJiraStatus } from "../config/pipelineConfig";
 
+// Status Movidesk que indicam que o atendimento foi encerrado sem precisar
+// de desenvolvimento — o pipeline vai direto de "Em Atendimento" para
+// "Concluído", pulando as etapas opcionais.
+const RESOLVED_MOVIDESK_STATUSES = ["Resolvido", "Fechado"];
+
 /**
  * PipelineService (protótipo)
  *
@@ -22,13 +27,15 @@ import { resolveStageForJiraStatus } from "../config/pipelineConfig";
  */
 export function getTicketPipeline(ticket: Ticket): TicketPipeline {
   if (ticket.jiraIssues.length === 0) {
+    const resolvedWithoutDevelopment = RESOLVED_MOVIDESK_STATUSES.includes(ticket.movideskStatus);
     const development: Development = {
       name: "Atendimento",
       jiraKey: null,
       jiraTitle: null,
       jiraStatus: null,
-      pipelineStage: "attendance",
+      pipelineStage: resolvedWithoutDevelopment ? "delivery" : "attendance",
       updatedAt: ticket.updatedAt,
+      skipsOptionalStages: resolvedWithoutDevelopment,
     };
     return { ticketId: ticket.id, developments: [development] };
   }
@@ -55,6 +62,7 @@ export function getTicketPipeline(ticket: Ticket): TicketPipeline {
       jiraStatus: issue.status,
       pipelineStage: stage,
       updatedAt: issue.updatedAt,
+      skipsOptionalStages: false,
     };
   });
 

@@ -43,41 +43,28 @@ function randomInt(min: number, max: number): number {
 }
 
 const MODULES = [
-  "Faturamento",
-  "NFS-e",
-  "Financeiro",
-  "Estoque",
-  "Integração Bancária",
-  "Portal do Cliente",
-  "Relatórios Gerenciais",
-  "Cadastro de Clientes",
-  "Contas a Pagar",
-  "Contas a Receber",
-  "Importação de XML",
-  "API de Integração",
-  "Módulo Fiscal",
-  "Emissão de Boletos",
-  "Conciliação Bancária",
-  "Dashboard Gerencial",
-  "Módulo de Compras",
-  "Central de Notificações",
-  "Aplicativo Mobile",
-  "Autenticação / SSO",
+  "SPED Fiscal",
+  "SPED Contribuições",
+  "Análise Fiscal",
+  "Apuração de Impostos",
+  "ECF",
+  "Relatório de Impostos Retidos",
+  "SPED Contábil",
 ] as const;
 
 const ACOES = [
-  "emitir nota fiscal",
-  "gerar boleto",
-  "sincronizar dados",
-  "importar arquivo XML",
-  "consultar relatório",
-  "processar pagamento",
-  "atualizar cadastro",
-  "exportar dados para Excel",
-  "enviar e-mail de cobrança",
-  "conciliar lançamentos bancários",
-  "calcular impostos",
-  "gerar relatório consolidado",
+  "gerar o arquivo",
+  "validar os registros",
+  "transmitir o arquivo para o Fisco",
+  "apurar os valores",
+  "consolidar os dados",
+  "importar os lançamentos",
+  "fechar o período",
+  "reprocessar a apuração",
+  "exportar o relatório",
+  "conciliar os dados fiscais e contábeis",
+  "calcular os valores",
+  "retificar o arquivo",
 ] as const;
 
 const BUG_TEMPLATES = [
@@ -117,6 +104,22 @@ const MOVIDESK_STATUSES = [
   "Fechado",
 ] as const;
 
+// Enquanto existir desenvolvimento Jira não concluído, o atendimento não pode
+// estar Resolvido/Fechado no Movidesk — senão o card mostraria um ticket
+// "fechado" com pipeline ainda em andamento, o que não faz sentido.
+const OPEN_MOVIDESK_STATUSES = [
+  "Novo",
+  "Em Atendimento",
+  "Aguardando Cliente",
+  "Aguardando Terceiros",
+  "Reaberto",
+  "Em Análise",
+] as const;
+
+// Usado quando todos os desenvolvimentos Jira já estão concluídos (ou quando
+// não há Jira e o próprio atendente resolveu o chamado).
+const CLOSED_MOVIDESK_STATUSES = ["Resolvido", "Fechado", "Aguardando Cliente"] as const;
+
 const JIRA_STATUSES_KNOWN = [
   "Pendente",
   "Em Desenvolvimento",
@@ -129,11 +132,29 @@ const JIRA_STATUSES_KNOWN = [
   "Concluído",
 ] as const;
 
-// Propositalmente fora do mapeamento (config/pipelineConfig.ts) para exercitar
-// o estado "Status Jira não mapeado" na interface.
-const JIRA_STATUSES_UNMAPPED = ["Bloqueado", "Aguardando Aprovação do PO"] as const;
+const JIRA_PROJECT_KEY = "TXPOA";
 
-const JIRA_PREFIXES = ["DEV", "SUP", "INFRA", "APP"] as const;
+let jiraKeySequence = 0;
+
+/** Gera chaves Jira sequenciais no formato TXPOA-0001, TXPOA-0002, ... */
+function nextJiraKey(): string {
+  jiraKeySequence += 1;
+  return `${JIRA_PROJECT_KEY}-${String(jiraKeySequence).padStart(4, "0")}`;
+}
+
+// Prefixo de data (AAAAMMDD) usado no número do ticket Movidesk, no formato
+// real da plataforma: AAAAMMDD + sequencial de 6 dígitos, ex.: 20260916000102.
+const TICKET_ID_DATE_PREFIX = (() => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}${m}${d}`;
+})();
+
+function buildMovideskId(sequence: number): string {
+  return `${TICKET_ID_DATE_PREFIX}${String(sequence).padStart(6, "0")}`;
+}
 
 const SUMMARY_OPENERS = [
   "Cliente relata que",
@@ -250,18 +271,27 @@ function buildJiraIssues(mod: string): JiraIssue[] {
 
   const issues: JiraIssue[] = [];
   for (let i = 0; i < count; i++) {
-    const unmapped = rng() < 0.1;
-    const status = unmapped ? pick(JIRA_STATUSES_UNMAPPED) : pick(JIRA_STATUSES_KNOWN);
-    const prefix = pick(JIRA_PREFIXES);
-    const number = randomInt(100, 999);
+    const status = pick(JIRA_STATUSES_KNOWN);
     issues.push({
-      key: `${prefix}-${number}`,
-      title: `[${prefix}] ${buildTitle(rng() > 0.5 ? "bug" : "melhoria", mod, pick(ACOES))}`,
+      key: nextJiraKey(),
+      title: `[${JIRA_PROJECT_KEY}] ${buildTitle(rng() > 0.5 ? "bug" : "melhoria", mod, pick(ACOES))}`,
       status,
       updatedAt: daysAgo(randomInt(0, 20), randomInt(0, 23)),
     });
   }
   return issues;
+}
+
+/**
+ * O status do atendimento no Movidesk precisa fazer sentido em relação ao
+ * andamento dos desenvolvimentos Jira associados: um ticket não pode estar
+ * Resolvido/Fechado enquanto ainda houver Jira pendente (ou com status não
+ * mapeado, já que nesse caso não sabemos se o desenvolvimento terminou).
+ */
+function pickMovideskStatus(jiraIssues: JiraIssue[]): string {
+  if (jiraIssues.length === 0) return pick(MOVIDESK_STATUSES);
+  const allConcluded = jiraIssues.every((issue) => issue.status === "Concluído");
+  return allConcluded ? pick(CLOSED_MOVIDESK_STATUSES) : pick(OPEN_MOVIDESK_STATUSES);
 }
 
 function buildTicket(index: number): Ticket {
@@ -277,16 +307,77 @@ function buildTicket(index: number): Ticket {
   const updatedAt = daysAgo(randomInt(0, Math.min(createdDaysAgo, 20)), randomInt(0, 23));
 
   return {
-    id: 100000 + index,
+    id: buildMovideskId(index),
     title: buildTitle(type, mod, acao),
     type,
-    movideskStatus: pick(MOVIDESK_STATUSES),
+    movideskStatus: pickMovideskStatus(jiraIssues),
     firstInteractionSummary: buildSummary(),
     requester: buildRequester(),
     createdAt,
     updatedAt,
     jiraIssues,
+    internalAlert: null,
   };
+}
+
+const PENDING_JIRA_STATUSES_FOR_ANOMALY = [
+  "Em Desenvolvimento",
+  "Em Teste",
+  "Correções/Ajustes",
+  "Pendente",
+] as const;
+
+/**
+ * Casos propositais de inconsistência real (fora do gerador "coerente" de
+ * `pickMovideskStatus`): o atendimento já foi encerrado no Movidesk, mas
+ * ainda existe desenvolvimento Jira em trâmite. Isso acontece na vida real
+ * (ex.: atendente fechou o chamado sem checar o Jira) e precisa aparecer
+ * sinalizado para a equipe interna revisar — nunca no painel público.
+ * Aplicado por posição fixa (pós-ordenação) para aparecer perto do topo da
+ * listagem padrão.
+ */
+function applyInternalDiscrepancyCases(tickets: Ticket[], positions: number[]): void {
+  for (const position of positions) {
+    const ticket = tickets[position];
+    if (!ticket) continue;
+
+    if (ticket.jiraIssues.length === 0) {
+      const mod = pick(MODULES);
+      ticket.jiraIssues.push({
+        key: nextJiraKey(),
+        title: `[${JIRA_PROJECT_KEY}] ${buildTitle("bug", mod, pick(ACOES))}`,
+        status: pick(PENDING_JIRA_STATUSES_FOR_ANOMALY),
+        updatedAt: daysAgo(randomInt(0, 5), randomInt(0, 23)),
+      });
+    } else if (ticket.jiraIssues.every((issue) => issue.status === "Concluído")) {
+      ticket.jiraIssues[0] = {
+        ...ticket.jiraIssues[0],
+        status: pick(PENDING_JIRA_STATUSES_FOR_ANOMALY),
+      };
+    }
+
+    ticket.movideskStatus = pick(["Fechado", "Resolvido"]);
+    ticket.internalAlert =
+      "Atendimento encerrado no Movidesk, mas ainda há desenvolvimento em andamento no Jira. Confirme antes de comunicar o cliente.";
+  }
+}
+
+/**
+ * Exemplo que "pula" as etapas opcionais: ticket sem Jira resolvido
+ * diretamente pelo atendente, então o pipeline vai direto de "Em
+ * Atendimento" para "Concluído" sem desenhar as bolinhas de desenvolvimento
+ * e testes. Fixado por posição para ficar visível perto do topo da
+ * listagem padrão.
+ */
+function applyDirectDeliveryExamples(tickets: Ticket[], positions: number[]): void {
+  for (const position of positions) {
+    const ticket = tickets[position];
+    if (!ticket) continue;
+
+    ticket.jiraIssues = [];
+    ticket.movideskStatus = pick(["Resolvido", "Fechado"]);
+    ticket.internalAlert = null;
+  }
 }
 
 function generateTickets(total: number): Ticket[] {
@@ -294,14 +385,19 @@ function generateTickets(total: number): Ticket[] {
   for (let i = 1; i <= total; i++) {
     tickets.push(buildTicket(i));
   }
-  return tickets.sort(
+  const sorted = tickets.sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   );
+  // Posição (0-based) 4 => 5ª linha: exemplo de pipeline direto ao "Concluído".
+  applyDirectDeliveryExamples(sorted, [4]);
+  // Posições (0-based) 5, 9 e 14 => 6ª, 10ª e 15ª linhas da listagem padrão.
+  applyInternalDiscrepancyCases(sorted, [5, 9, 14]);
+  return sorted;
 }
 
 export const MOCK_TICKETS: Ticket[] = generateTickets(100);
 
-export function findTicketById(id: number): Ticket | undefined {
+export function findTicketById(id: string): Ticket | undefined {
   return MOCK_TICKETS.find((t) => t.id === id);
 }
 

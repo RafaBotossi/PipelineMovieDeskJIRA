@@ -20,8 +20,8 @@ export type TokenResolution =
 
 interface ShareLinksContextValue {
   links: ShareLink[];
-  getLinksForTicket: (ticketId: number) => ShareLink[];
-  createShareLink: (ticketId: number, expiration: ExpirationOption) => ShareLink;
+  getLinksForTicket: (ticketId: string) => ShareLink[];
+  createShareLink: (ticketId: string, expiration: ExpirationOption) => ShareLink;
   revokeShareLink: (id: string) => void;
   resolveToken: (token: string) => TokenResolution;
   registerAccess: (token: string) => void;
@@ -51,11 +51,11 @@ export function ShareLinksProvider({ children }: { children: ReactNode }) {
   }, [links]);
 
   const getLinksForTicket = useCallback(
-    (ticketId: number) => links.filter((l) => l.ticketId === ticketId),
+    (ticketId: string) => links.filter((l) => l.ticketId === ticketId),
     [links]
   );
 
-  const createShareLink = useCallback((ticketId: number, expiration: ExpirationOption) => {
+  const createShareLink = useCallback((ticketId: string, expiration: ExpirationOption) => {
     const now = new Date();
     const link: ShareLink = {
       id: crypto.randomUUID(),

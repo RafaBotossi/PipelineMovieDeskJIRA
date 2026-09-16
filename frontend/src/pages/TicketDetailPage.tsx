@@ -8,6 +8,7 @@ import { PIPELINE_STAGE_LABEL } from "../config/pipelineConfig";
 import { JiraPipeline } from "../components/JiraPipeline";
 import { ShareTicketModal } from "../components/ShareTicketModal";
 import { ShareLinkManager } from "../components/ShareLinkManager";
+import { InternalAlertBanner } from "../components/InternalAlertBanner";
 import { formatDate, formatDateTime } from "../utils/format";
 import type { PipelineStage } from "../types/ticket";
 
@@ -30,7 +31,7 @@ function InfoField({ label, value }: { label: string; value: string }) {
 
 export default function TicketDetailPage() {
   const { id } = useParams();
-  const ticket = id ? findTicketById(Number(id)) : undefined;
+  const ticket = id ? findTicketById(id) : undefined;
   const [shareOpen, setShareOpen] = useState(false);
 
   if (!ticket) {
@@ -56,6 +57,8 @@ export default function TicketDetailPage() {
           <ArrowLeft size={15} />
           Voltar ao Pipeline de Atendimento
         </Link>
+
+        {ticket.internalAlert && <InternalAlertBanner message={ticket.internalAlert} />}
 
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
           <div>
@@ -112,7 +115,9 @@ export default function TicketDetailPage() {
         {pipeline.developments.length === 1 && pipeline.developments[0].jiraKey === null ? (
           <div>
             <p className="mb-3 text-xs text-slate-400">
-              Este ticket ainda não possui um ticket Jira associado.
+              {pipeline.developments[0].skipsOptionalStages
+                ? "Ticket resolvido diretamente pelo atendente, sem necessidade de abrir um desenvolvimento no Jira."
+                : "Este ticket ainda não possui um ticket Jira associado."}
             </p>
             <JiraPipeline development={pipeline.developments[0]} size="lg" />
           </div>

@@ -1,7 +1,11 @@
 import clsx from "clsx";
 import { Check, ChevronDown, HelpCircle } from "lucide-react";
 import type { PipelineStage } from "../types/ticket";
-import { PIPELINE_STAGE_LABEL, PIPELINE_STAGE_ORDER } from "../config/pipelineConfig";
+import {
+  OPTIONAL_PIPELINE_STAGES,
+  PIPELINE_STAGE_LABEL,
+  PIPELINE_STAGE_ORDER,
+} from "../config/pipelineConfig";
 import { Tooltip } from "./Tooltip";
 
 type StepState = "done" | "current" | "future" | "unmapped";
@@ -39,7 +43,15 @@ const RING_CLASS: Record<StepSize, string> = {
   lg: "ring-[6px]",
 };
 
-function StepCircle({ state, size }: { state: StepState; size: StepSize }) {
+function StepCircle({
+  state,
+  size,
+  dashed,
+}: {
+  state: StepState;
+  size: StepSize;
+  dashed: boolean;
+}) {
   const dims = DIMS[size];
   const iconSize = ICON_SIZE[size];
 
@@ -69,20 +81,27 @@ function StepCircle({ state, size }: { state: StepState; size: StepSize }) {
       </span>
     );
   }
-  return <span className={clsx(CIRCLE_BASE, dims, "border-slate-300 bg-white")} />;
+  return (
+    <span
+      className={clsx(
+        CIRCLE_BASE,
+        dims,
+        dashed ? "border-dashed border-slate-300 bg-white" : "border-slate-300 bg-white"
+      )}
+    />
+  );
 }
-
-const CONNECTOR_STATE_CLASS: Record<StepState, string> = {
-  done: "bg-emerald-500",
-  current: "bg-slate-200",
-  unmapped: "bg-slate-200",
-  future: "bg-slate-200",
-};
 
 export interface PipelineStepperProps {
   stage: PipelineStage;
   jiraKey?: string | null;
   jiraStatus?: string | null;
+  /**
+   * true quando o item foi direto de "Em Atendimento" para "Concluído",
+   * sem passar pelas etapas opcionais (Em Desenvolvimento / Em Testes) —
+   * essas bolinhas nem são desenhadas nesse caso.
+   */
+  skipsOptionalStages?: boolean;
   size?: StepSize;
   showLabels?: boolean;
   orientation?: "horizontal" | "vertical";
@@ -93,22 +112,37 @@ export function PipelineStepper({
   stage,
   jiraKey,
   jiraStatus,
+  skipsOptionalStages = false,
   size = "md",
   showLabels = true,
   orientation = "horizontal",
   className,
 }: PipelineStepperProps) {
   const states = computeStepStates(stage);
+  const skip = skipsOptionalStages && stage === "delivery";
+
+  const allIndices = PIPELINE_STAGE_ORDER.map((_, idx) => idx);
+  const visibleIndices = skip
+    ? allIndices.filter((idx) => !OPTIONAL_PIPELINE_STAGES.includes(PIPELINE_STAGE_ORDER[idx]))
+    : allIndices;
+
+  function isDashed(idx: number): boolean {
+    return (
+      !skip && OPTIONAL_PIPELINE_STAGES.includes(PIPELINE_STAGE_ORDER[idx]) && states[idx] === "future"
+    );
+  }
 
   if (orientation === "vertical") {
     return (
       <div className={clsx("flex flex-col", className)}>
-        {PIPELINE_STAGE_ORDER.map((stepStage, idx) => {
+        {visibleIndices.map((idx, position) => {
+          const stepStage = PIPELINE_STAGE_ORDER[idx];
           const state = states[idx];
+          const dashed = isDashed(idx);
           return (
             <div key={stepStage} className="flex flex-col items-center">
               <div className="flex items-center gap-3 self-stretch">
-                <StepCircle state={state} size={size} />
+                <StepCircle state={state} size={size} dashed={dashed} />
                 <span
                   className={clsx(
                     "text-sm",
@@ -121,7 +155,7 @@ export function PipelineStepper({
                   {PIPELINE_STAGE_LABEL[stepStage]}
                 </span>
               </div>
-              {idx < PIPELINE_STAGE_ORDER.length - 1 && (
+              {position < visibleIndices.length - 1 && (
                 <ChevronDown
                   size={14}
                   className={clsx(
@@ -145,9 +179,11 @@ export function PipelineStepper({
   return (
     <div className={clsx("flex flex-col gap-1.5", className)}>
       <div className="flex items-center">
-        {PIPELINE_STAGE_ORDER.map((stepStage, idx) => {
+        {visibleIndices.map((idx, position) => {
+          const stepStage = PIPELINE_STAGE_ORDER[idx];
           const state = states[idx];
-          const circle = <StepCircle state={state} size={size} />;
+          const dashed = isDashed(idx);
+          const circle = <StepCircle state={state} size={size} dashed={dashed} />;
           const wrapped =
             state === "current" || state === "unmapped" ? (
               <Tooltip
@@ -174,15 +210,22 @@ export function PipelineStepper({
               circle
             );
 
+          const nextIdx = visibleIndices[position + 1];
+          const connectorDashed = nextIdx !== undefined && isDashed(nextIdx);
+
           return (
             <div key={stepStage} className="flex flex-1 items-center last:flex-none">
               {wrapped}
-              {idx < PIPELINE_STAGE_ORDER.length - 1 && (
+              {position < visibleIndices.length - 1 && (
                 <span
                   className={clsx(
-                    "mx-1.5 flex-1 rounded-full",
-                    size === "lg" ? "h-1" : "h-0.5",
-                    state === "done" ? CONNECTOR_STATE_CLASS.done : CONNECTOR_STATE_CLASS.future
+                    "mx-1.5 flex-1",
+                    size === "lg" ? "border-t-[3px]" : "border-t-2",
+                    connectorDashed
+                      ? "border-dashed border-slate-300"
+                      : state === "done"
+                        ? "border-solid border-emerald-500"
+                        : "border-solid border-slate-200"
                   )}
                 />
               )}
@@ -193,18 +236,21 @@ export function PipelineStepper({
 
       {showLabels && (
         <div className={clsx("flex", size === "lg" ? "text-xs" : "text-[11px]", "text-slate-500")}>
-          {PIPELINE_STAGE_ORDER.map((stepStage, idx) => (
-            <div
-              key={stepStage}
-              className={clsx(
-                "flex-1 text-center leading-tight first:text-left last:flex-none last:text-right",
-                states[idx] === "current" && "font-semibold text-indigo-700",
-                states[idx] === "unmapped" && "font-semibold text-amber-700"
-              )}
-            >
-              {PIPELINE_STAGE_LABEL[stepStage]}
-            </div>
-          ))}
+          {visibleIndices.map((idx) => {
+            const stepStage = PIPELINE_STAGE_ORDER[idx];
+            return (
+              <div
+                key={stepStage}
+                className={clsx(
+                  "flex-1 text-center leading-tight first:text-left last:flex-none last:text-right",
+                  states[idx] === "current" && "font-semibold text-indigo-700",
+                  states[idx] === "unmapped" && "font-semibold text-amber-700"
+                )}
+              >
+                {PIPELINE_STAGE_LABEL[stepStage]}
+              </div>
+            );
+          })}
         </div>
       )}
 

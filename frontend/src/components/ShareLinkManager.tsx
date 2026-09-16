@@ -14,7 +14,7 @@ function linkStatus(link: ShareLink): { label: string; tone: "success" | "neutra
   return { label: "Ativo", tone: "success" };
 }
 
-export function ShareLinkManager({ ticketId }: { ticketId: number }) {
+export function ShareLinkManager({ ticketId }: { ticketId: string }) {
   const { getLinksForTicket, revokeShareLink } = useShareLinks();
   const showToast = useToast();
   const links = getLinksForTicket(ticketId);
